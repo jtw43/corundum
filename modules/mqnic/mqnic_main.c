@@ -830,7 +830,7 @@ fail_assign_id:
 	return ret;
 }
 
-static int mqnic_platform_remove(struct platform_device *pdev)
+static void mqnic_platform_remove(struct platform_device *pdev)
 {
 	struct mqnic_dev *mqnic = platform_get_drvdata(pdev);
 	struct devlink *devlink = priv_to_devlink(mqnic);
@@ -841,12 +841,25 @@ static int mqnic_platform_remove(struct platform_device *pdev)
 
 	mqnic_free_id(mqnic);
 	mqnic_devlink_free(devlink);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
+static int mqnic_platform_remove_old(struct platform_device *pdev)
+{
+	mqnic_platform_remove(pdev);
 	return 0;
 }
+#endif
 
 static struct platform_driver mqnic_platform_driver = {
 	.probe = mqnic_platform_probe,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 	.remove = mqnic_platform_remove,
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	.remove_new = mqnic_platform_remove,
+#else
+	.remove = mqnic_platform_remove_old,
+#endif
 	.driver = {
 		.name = DRIVER_NAME,
 		.of_match_table = of_match_ptr(mqnic_of_id_table),
