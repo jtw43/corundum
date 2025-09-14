@@ -49,7 +49,7 @@ MODULE_DEVICE_TABLE(pci, mqnic_pci_id_table);
 #endif
 
 #ifdef CONFIG_OF
-static struct of_device_id mqnic_of_id_table[] = {
+static const struct of_device_id mqnic_of_id_table[] = {
 	{ .compatible = "corundum,mqnic" },
 	{ },
 };
@@ -153,7 +153,7 @@ static void mqnic_platform_module_eeprom_put(struct mqnic_dev *mqnic)
 	int k;
 
 	for (k = 0; k < mqnic->if_count; k++)
-		if (mqnic->mod_i2c_client)
+		if (mqnic->mod_i2c_client[k])
 			put_device(&mqnic->mod_i2c_client[k]->dev);
 }
 
@@ -188,10 +188,9 @@ static int mqnic_platform_module_eeprom_get(struct mqnic_dev *mqnic)
 			dev_err(dev, "Failed to find I2C device for module of interface %d\n", k);
 			of_node_put(np);
 			break;
-		} else {
-			mqnic->mod_i2c_client[k] = cl;
-			mqnic->mod_i2c_client_count++;
 		}
+		mqnic->mod_i2c_client[k] = cl;
+		mqnic->mod_i2c_client_count++;
 		of_node_put(np);
 	}
 
@@ -323,7 +322,7 @@ static int mqnic_common_probe(struct mqnic_dev *mqnic)
 	if (mqnic->if_count * mqnic->if_stride > mqnic->hw_regs_size) {
 		ret = -EIO;
 		dev_err(dev, "Invalid BAR configuration (%d IF * 0x%x > 0x%llx)",
-				mqnic->if_count, mqnic->if_stride, mqnic->hw_regs_size);
+			mqnic->if_count, mqnic->if_stride, (unsigned long long)mqnic->hw_regs_size);
 		goto fail_bar_size;
 	}
 
@@ -600,7 +599,7 @@ static int mqnic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent
 	mqnic->ram_hw_regs_phys = pci_resource_start(pdev, 4);
 
 	// Map BARs
-	dev_info(dev, "Control BAR size: %llu", mqnic->hw_regs_size);
+	dev_info(dev, "Control BAR size: %llu", (unsigned long long)mqnic->hw_regs_size);
 	mqnic->hw_addr = pci_ioremap_bar(pdev, 0);
 	if (!mqnic->hw_addr) {
 		ret = -ENOMEM;
@@ -609,7 +608,7 @@ static int mqnic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent
 	}
 
 	if (mqnic->app_hw_regs_size) {
-		dev_info(dev, "Application BAR size: %llu", mqnic->app_hw_regs_size);
+	  dev_info(dev, "Application BAR size: %llu", (unsigned long long)mqnic->app_hw_regs_size);
 		mqnic->app_hw_addr = pci_ioremap_bar(pdev, 2);
 		if (!mqnic->app_hw_addr) {
 			ret = -ENOMEM;
@@ -619,7 +618,7 @@ static int mqnic_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent
 	}
 
 	if (mqnic->ram_hw_regs_size) {
-		dev_info(dev, "RAM BAR size: %llu", mqnic->ram_hw_regs_size);
+	  dev_info(dev, "RAM BAR size: %llu", (unsigned long long)mqnic->ram_hw_regs_size);
 		mqnic->ram_hw_addr = pci_ioremap_bar(pdev, 4);
 		if (!mqnic->ram_hw_addr) {
 			ret = -ENOMEM;
